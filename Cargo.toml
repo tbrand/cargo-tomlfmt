@@ -3,6 +3,9 @@ name = 'cargo-tomlfmt'
 version = '0.1.0'
 authors = ['tbrand <taichiro0709@gmail.com>']
 description = 'Formatting Cargo.toml'
+homepage = 'https://github.com/tbrand/cargo-tomlfmt'
+repository = 'https://github.com/tbrand/cargo-tomlfmt'
+license = 'https://github.com/tbrand/cargo-tomlfmt/blob/master/LICENSE'
 edition = '2018'
 
 [[bin]]
