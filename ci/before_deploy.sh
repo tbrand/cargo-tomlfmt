@@ -17,9 +17,9 @@ main() {
 
     test -f Cargo.lock || cargo generate-lockfile
 
-    cross rustc --bin tomlfmt --target $TARGET --release -- -C lto
+    cross rustc --bin cargo-tomlfmt --target $TARGET --release -- -C lto
 
-    cp target/$TARGET/release/tomlfmt $stage/
+    cp target/$TARGET/release/cargo-tomlfmt $stage/
 
     cd $stage
     tar czf $src/$CRATE_NAME-$TRAVIS_TAG-$TARGET.tar.gz *

@@ -6,7 +6,7 @@ description = 'Formatting toml file especifally for Cargo.toml'
 edition = '2018'
 
 [[bin]]
-name = 'tomlfmt'
+name = 'cargo-tomlfmt'
 path = 'src/main.rs'
 
 [dependencies]

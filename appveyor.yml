@@ -33,7 +33,7 @@ test_script:
     )
 
 before_deploy:
-  - cargo rustc --target %TARGET% --release --bin tomlfmt -- -C lto
+  - cargo rustc --target %TARGET% --release --bin cargo-tomlfmt -- -C lto
   - ps: ci\before_deploy.ps1
 
 deploy:
