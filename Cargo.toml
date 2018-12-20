@@ -1,0 +1,22 @@
+[package]
+name = 'cargo-tomlfmt'
+version = '0.1.0'
+authors = ['tbrand <taichiro0709@gmail.com>']
+description = 'Formatting toml file especifally for Cargo.toml'
+edition = '2018'
+
+[[bin]]
+name = 'tomlfmt'
+path = 'src/main.rs'
+
+[dependencies]
+cargo = '*'
+clap = '*'
+env_logger = '*'
+failure = '*'
+log = '*'
+semver = '*'
+serde = '*'
+serde_derive = '*'
+serde_ignored = '*'
+toml = '*'
