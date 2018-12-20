@@ -12,10 +12,13 @@ fn main() -> Result<()> {
         .version(crate_version!())
         .about(crate_description!())
         .author(crate_authors!())
-        .arg(cli::arg_path())
-        .arg(cli::arg_dry_run())
-        .arg(cli::arg_keep())
-        .arg(cli::arg_create())
+        .subcommand(
+            clap::SubCommand::with_name("tomlfmt")
+                .arg(cli::arg_path())
+                .arg(cli::arg_dry_run())
+                .arg(cli::arg_keep())
+                .arg(cli::arg_create()),
+        )
         .get_matches();
 
     let path = matches.value_of("path").unwrap_or("Cargo.toml");
