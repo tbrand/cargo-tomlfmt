@@ -2,7 +2,7 @@
 name = 'cargo-tomlfmt'
 version = '0.1.0'
 authors = ['tbrand <taichiro0709@gmail.com>']
-description = 'Formatting toml file especifally for Cargo.toml'
+description = 'Formatting Cargo.toml'
 edition = '2018'
 
 [[bin]]
