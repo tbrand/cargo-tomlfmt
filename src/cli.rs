@@ -4,8 +4,8 @@ pub fn arg_path<'a, 'b>() -> Arg<'a, 'b> {
     Arg::with_name("path")
         .long("path")
         .short("p")
-        .help("Path of the manifest. (default is Cargo.toml)")
-        .takes_value(false)
+        .help("Path to the manifest. (default is Cargo.toml)")
+        .takes_value(true)
         .multiple(false)
 }
 

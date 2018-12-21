@@ -6,6 +6,10 @@ mod cli;
 mod re_define;
 
 fn main() -> Result<()> {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+
     env_logger::init();
 
     let matches = clap::App::new(crate_name!())
@@ -14,17 +18,43 @@ fn main() -> Result<()> {
         .author(crate_authors!())
         .subcommand(
             clap::SubCommand::with_name("tomlfmt")
+                .about("It's just an alias as a subcommand of cargo.")
                 .arg(cli::arg_path())
                 .arg(cli::arg_dry_run())
                 .arg(cli::arg_keep())
                 .arg(cli::arg_create()),
         )
+        .arg(cli::arg_path())
+        .arg(cli::arg_dry_run())
+        .arg(cli::arg_keep())
+        .arg(cli::arg_create())
         .get_matches();
 
-    let path = matches.value_of("path").unwrap_or("Cargo.toml");
-    let flag_dryrun = matches.is_present("dryrun");
-    let flag_keep = matches.is_present("keep");
-    let flag_create = matches.is_present("create");
+    let mut path = matches.value_of("path");
+
+    if path.is_none() {
+        path = matches
+            .subcommand_matches("tomlfmt")
+            .and_then(|m| m.value_of("path"));
+    }
+
+    let path = path.unwrap_or("Cargo.toml");
+
+    let flag_dryrun = matches.is_present("dryrun")
+        || matches
+            .subcommand_matches("tomlfmt")
+            .map(|m| m.is_present("dryrun"))
+            .unwrap_or(false);
+    let flag_keep = matches.is_present("keep")
+        || matches
+            .subcommand_matches("tomlfmt")
+            .map(|m| m.is_present("keep"))
+            .unwrap_or(false);
+    let flag_create = matches.is_present("create")
+        || matches
+            .subcommand_matches("tomlfmt")
+            .map(|m| m.is_present("create"))
+            .unwrap_or(false);
 
     if flag_dryrun {
         log::debug!("flag: dryrun");
