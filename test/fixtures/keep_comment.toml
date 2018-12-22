@@ -1,0 +1,8 @@
+[package]
+name = 'cargo-tomlfmt'
+version = '0.1.2'
+
+[dependencies]
+# this is an inline comment
+crate0 = '0.1.0'
+crate1 = '0.1.1' # this is a suffix comment

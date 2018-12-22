@@ -3,7 +3,7 @@ use clap::{crate_authors, crate_description, crate_name, crate_version};
 type Result<T> = std::result::Result<T, failure::Error>;
 
 mod cli;
-mod re_define;
+mod fmt;
 
 fn main() -> Result<()> {
     if std::env::var("RUST_LOG").is_err() {
@@ -74,16 +74,39 @@ fn main() -> Result<()> {
 
     let file = std::fs::read(path)?;
     let orig = std::str::from_utf8(file.as_slice())?;
-    let manifest: re_define::TomlManifest = toml::from_slice(file.as_slice())?;
-    let pretty = toml::to_string_pretty(&manifest)?;
 
-    if orig != pretty {
+    let mut doc = orig.parse::<toml_edit::Document>()?;
+    let doc_keys = doc.clone();
+    let keys = doc_keys
+        .as_table()
+        .iter()
+        .map(|(key, _)| key.to_owned())
+        .collect::<Vec<String>>();
+
+    for key in keys.iter() {
+        if key == "package" {
+            // we don't format the 'package' table.
+            continue;
+        }
+
+        if doc[key].is_table() {
+            fmt::fmt_table(&mut doc[key.as_str()].as_table_mut().unwrap())?;
+        } else if doc[key].is_array_of_tables() {
+            fmt::fmt_array_of_tables(&mut doc[key.as_str()].as_array_of_tables_mut().unwrap())?;
+        } else if doc[key].is_value() {
+            fmt::fmt_value(&mut doc[key.as_str()].as_value_mut().unwrap())?;
+        }
+    }
+
+    let formatted = doc.to_string();
+
+    if orig != formatted {
         if flag_dryrun {
             log::warn!("dryrun founds problems in Cargo.toml");
 
             if flag_create {
                 log::info!("create Cargo.toml.new");
-                std::fs::write("Cargo.toml.new", pretty)?;
+                std::fs::write("Cargo.toml.new", formatted)?;
             }
 
             log::warn!("exit with -1");
@@ -91,7 +114,7 @@ fn main() -> Result<()> {
         } else {
             log::info!("overwrite the manifest");
             std::fs::rename(path, "Cargo.toml.bak")?;
-            std::fs::write(path, pretty)?;
+            std::fs::write(path, formatted)?;
 
             if !flag_keep {
                 std::fs::remove_file("Cargo.toml.bak")?;
