@@ -1,6 +1,6 @@
 [package]
 name = 'cargo-tomlfmt'
-version = '0.1.2'
+version = '0.1.3'
 authors = ['tbrand <taichiro0709@gmail.com>']
 description = 'Formatting Cargo.toml'
 homepage = 'https://github.com/tbrand/cargo-tomlfmt'
