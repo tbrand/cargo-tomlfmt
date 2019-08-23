@@ -124,7 +124,7 @@ fn main() -> Result<()> {
             }
         }
     } else {
-        log::info!("no problem found. good job! :)");
+        log::debug!("no problem found. good job! :)");
         std::process::exit(0);
     }
 
