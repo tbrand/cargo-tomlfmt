@@ -15,6 +15,6 @@ path = 'src/main.rs'
 [dependencies]
 clap = "2.34.0"
 env_logger = '0.10.0'
-failure = "0.1.8"
+anyhow = "1.0.68"
 log = "0.4.17"
 toml_edit = "0.18.0"
