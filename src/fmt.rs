@@ -7,13 +7,13 @@ pub fn fmt_table(table: &mut toml_edit::Table) -> Result<()> {
         .map(|(key, _)| key.to_owned())
         .collect::<Vec<String>>();
 
-    for key in keys.iter() {
+    for key in &keys {
         if table[key].is_table() {
-            fmt_table(&mut table[key.as_str()].as_table_mut().unwrap())?;
+            fmt_table(table[key.as_str()].as_table_mut().unwrap())?;
         } else if table[key].is_array_of_tables() {
-            fmt_array_of_tables(&mut table[key.as_str()].as_array_of_tables_mut().unwrap())?;
+            fmt_array_of_tables(table[key.as_str()].as_array_of_tables_mut().unwrap())?;
         } else if table[key].is_value() {
-            fmt_value(&mut table[key.as_str()].as_value_mut().unwrap())?;
+            fmt_value(table[key.as_str()].as_value_mut().unwrap())?;
         }
     }
 
@@ -24,8 +24,8 @@ pub fn fmt_table(table: &mut toml_edit::Table) -> Result<()> {
 
 pub fn fmt_array_of_tables(array_of_tables: &mut toml_edit::ArrayOfTables) -> Result<()> {
     for idx in 0..array_of_tables.len() {
-        let mut table = array_of_tables.get_mut(idx).unwrap();
-        fmt_table(&mut table)?;
+        let table = array_of_tables.get_mut(idx).unwrap();
+        fmt_table(table)?;
     }
 
     Ok(())
