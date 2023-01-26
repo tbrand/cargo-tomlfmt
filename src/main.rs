@@ -1,9 +1,7 @@
-use clap::{crate_authors, crate_description, crate_name, crate_version};
-
-type Result<T> = anyhow::Result<T>;
-
 mod cli;
 mod fmt;
+
+type Result<T> = anyhow::Result<T>;
 
 fn fmt_toml(orig: &str) -> Result<String> {
     let mut doc = orig.parse::<toml_edit::Document>()?;
@@ -39,48 +37,33 @@ fn main() -> Result<()> {
 
     env_logger::init();
 
-    let matches = clap::App::new(crate_name!())
-        .version(crate_version!())
-        .about(crate_description!())
-        .author(crate_authors!())
-        .subcommand(
-            clap::SubCommand::with_name("tomlfmt")
-                .about("It's just an alias as a subcommand of cargo.")
-                .arg(cli::arg_path())
-                .arg(cli::arg_dry_run())
-                .arg(cli::arg_keep())
-                .arg(cli::arg_create()),
-        )
-        .arg(cli::arg_path())
-        .arg(cli::arg_dry_run())
-        .arg(cli::arg_keep())
-        .arg(cli::arg_create())
-        .get_matches();
+    let app = cli::app();
+    let matches = app.get_matches();
 
-    let mut path = matches.value_of("path");
+    let mut path = matches.get_one::<String>("path").map(|s| s.as_str());
 
     if path.is_none() {
         path = matches
             .subcommand_matches("tomlfmt")
-            .and_then(|m| m.value_of("path"));
+            .and_then(|m| m.get_one::<String>("path").map(|s| s.as_str()));
     }
 
     let path = path.unwrap_or("Cargo.toml");
 
-    let flag_dryrun = matches.is_present("dryrun")
+    let flag_dryrun = matches.contains_id("dryrun")
         || matches
             .subcommand_matches("tomlfmt")
-            .map(|m| m.is_present("dryrun"))
+            .map(|m| m.contains_id("dryrun"))
             .unwrap_or(false);
-    let flag_keep = matches.is_present("keep")
+    let flag_keep = matches.contains_id("keep")
         || matches
             .subcommand_matches("tomlfmt")
-            .map(|m| m.is_present("keep"))
+            .map(|m| m.contains_id("keep"))
             .unwrap_or(false);
-    let flag_create = matches.is_present("create")
+    let flag_create = matches.contains_id("create")
         || matches
             .subcommand_matches("tomlfmt")
-            .map(|m| m.is_present("create"))
+            .map(|m| m.contains_id("create"))
             .unwrap_or(false);
 
     if flag_dryrun {
