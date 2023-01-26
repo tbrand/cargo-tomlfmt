@@ -14,18 +14,18 @@ fn fmt_toml(orig: &str) -> Result<String> {
         .map(|(key, _)| key.to_owned())
         .collect::<Vec<String>>();
 
-    for key in keys.iter() {
+    for key in &keys {
         if key == "package" {
             // we don't format the 'package' table.
             continue;
         }
 
         if doc[key].is_table() {
-            fmt::fmt_table(&mut doc[key.as_str()].as_table_mut().unwrap())?;
+            fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap())?;
         } else if doc[key].is_array_of_tables() {
-            fmt::fmt_array_of_tables(&mut doc[key.as_str()].as_array_of_tables_mut().unwrap())?;
+            fmt::fmt_array_of_tables(doc[key.as_str()].as_array_of_tables_mut().unwrap())?;
         } else if doc[key].is_value() {
-            fmt::fmt_value(&mut doc[key.as_str()].as_value_mut().unwrap())?;
+            fmt::fmt_value(doc[key.as_str()].as_value_mut().unwrap())?;
         }
     }
 
@@ -101,7 +101,7 @@ fn main() -> Result<()> {
 
     let file = std::fs::read(path)?;
     let orig = std::str::from_utf8(file.as_slice())?;
-    let formatted = fmt_toml(&orig)?;
+    let formatted = fmt_toml(orig)?;
 
     if orig != formatted {
         if flag_dryrun {
