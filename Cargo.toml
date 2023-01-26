@@ -6,7 +6,7 @@ description = 'Formatting Cargo.toml'
 homepage = 'https://github.com/tbrand/cargo-tomlfmt'
 license = 'MIT'
 repository = 'https://github.com/tbrand/cargo-tomlfmt'
-edition = '2018'
+edition = '2021'
 
 [[bin]]
 name = 'cargo-tomlfmt'
