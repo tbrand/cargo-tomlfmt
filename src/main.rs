@@ -88,7 +88,7 @@ fn main() -> Result<()> {
 
     if orig != formatted {
         if flag_dryrun {
-            log::warn!("dryrun founds problems in Cargo.toml");
+            log::warn!("dryrun found problems in Cargo.toml");
 
             if flag_create {
                 log::info!("create Cargo.toml.new");
