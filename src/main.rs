@@ -1,4 +1,5 @@
 use clap::{crate_authors, crate_description, crate_name, crate_version};
+use env_logger::Env;
 
 type Result<T> = anyhow::Result<T>;
 
@@ -33,11 +34,7 @@ fn fmt_toml(orig: &str) -> Result<String> {
 }
 
 fn main() -> Result<()> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-    }
-
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let matches = clap::App::new(crate_name!())
         .version(crate_version!())
