@@ -1,3 +1,5 @@
+use env_logger::Env;
+
 mod cli;
 mod fmt;
 
@@ -31,11 +33,7 @@ fn fmt_toml(orig: &str) -> Result<String> {
 }
 
 fn main() -> Result<()> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-    }
-
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let app = cli::app();
     let matches = app.get_matches();

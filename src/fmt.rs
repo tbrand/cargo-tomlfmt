@@ -1,4 +1,4 @@
-use crate::Result;
+type Result<T> = anyhow::Result<T>;
 
 pub fn fmt_table(table: &mut toml_edit::Table) -> Result<()> {
     let keys = table
