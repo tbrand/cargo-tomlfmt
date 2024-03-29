@@ -118,17 +118,14 @@ mod test {
 
     #[test]
     fn parse_inline_table() {
-        let file = std::fs::read("test/fixtures/value_after_table.toml").unwrap();
-        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
-
-        assert!(fmt_toml(&file_str).is_ok());
+        let file_str = include_str!("../test/fixtures/value_after_table.toml");
+        assert!(fmt_toml(file_str).is_ok());
     }
 
     #[test]
     fn preserve_comments() {
-        let file = std::fs::read("test/fixtures/keep_comment.toml").unwrap();
-        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
-        let formatted = fmt_toml(&file_str);
+        let file_str = include_str!("../test/fixtures/keep_comment.toml");
+        let formatted = fmt_toml(file_str);
 
         assert!(formatted.is_ok());
 
