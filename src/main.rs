@@ -1,12 +1,16 @@
-use env_logger::Env;
-
 mod cli;
 mod fmt;
 
+use clap::Parser;
+use env_logger::Env;
+use std::process::exit;
+
+use cli::{Client, Command};
+
 type Result<T> = anyhow::Result<T>;
 
-fn fmt_toml(orig: &str) -> Result<String> {
-    let mut doc = orig.parse::<toml_edit::Document>()?;
+fn fmt_toml<T: AsRef<str>>(orig: T) -> Result<String> {
+    let mut doc = orig.as_ref().parse::<toml_edit::Document>()?;
     let doc_keys = doc.clone();
     let keys = doc_keys
         .as_table()
@@ -35,78 +39,65 @@ fn fmt_toml(orig: &str) -> Result<String> {
 fn main() -> Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let app = cli::app();
-    let matches = app.get_matches();
+    let client = Client::parse();
+    let options = client.command.map_or(client.options, |c| match c {
+        Command::Tomlfmt(options) => options,
+    });
 
-    let mut path = matches.get_one::<String>("path").map(|s| s.as_str());
-
-    if path.is_none() {
-        path = matches
-            .subcommand_matches("tomlfmt")
-            .and_then(|m| m.get_one::<String>("path").map(|s| s.as_str()));
-    }
-
-    let path = path.unwrap_or("Cargo.toml");
-
-    let flag_dryrun = matches.contains_id("dryrun")
-        || matches
-            .subcommand_matches("tomlfmt")
-            .map(|m| m.contains_id("dryrun"))
-            .unwrap_or(false);
-    let flag_keep = matches.contains_id("keep")
-        || matches
-            .subcommand_matches("tomlfmt")
-            .map(|m| m.contains_id("keep"))
-            .unwrap_or(false);
-    let flag_create = matches.contains_id("create")
-        || matches
-            .subcommand_matches("tomlfmt")
-            .map(|m| m.contains_id("create"))
-            .unwrap_or(false);
-
-    if flag_dryrun {
+    if options.dryrun {
         log::debug!("flag: dryrun");
     }
 
-    if flag_keep {
+    if options.keep {
         log::debug!("flag: keep");
     }
 
-    if flag_create {
+    if options.create {
         log::debug!("flag: create");
 
-        if !flag_dryrun {
-            log::warn!("flag: create can be used with dryrun");
+        if !options.dryrun {
+            log::warn!("flag: create can only be used with dryrun");
         }
     }
 
-    let file = std::fs::read(path)?;
-    let orig = std::str::from_utf8(file.as_slice())?;
-    let formatted = fmt_toml(orig)?;
+    if !options.path.exists() {
+        log::error!("{} does not exist", options.path.display());
+        exit(-1);
+    }
+    if !options.path.is_file() {
+        log::error!("{} is not a file", options.path.display());
+        exit(-1);
+    }
+    let file_path = &options.path;
+    let file_name = String::from(file_path.file_name().unwrap().to_str().unwrap());
+
+    let orig = std::fs::read_to_string(file_path)?;
+    let formatted = fmt_toml(&orig)?;
 
     if orig != formatted {
-        if flag_dryrun {
+        if options.dryrun {
             log::warn!("dryrun found problems in Cargo.toml");
 
-            if flag_create {
-                log::info!("create Cargo.toml.new");
-                std::fs::write("Cargo.toml.new", formatted)?;
+            if options.create {
+                let mut new_file = file_path.clone();
+                new_file.set_file_name(file_name + ".new");
+                log::info!("create {}", new_file.display());
+                std::fs::write(new_file, formatted)?;
             }
 
             log::warn!("exit with -1");
-            std::process::exit(-1);
+            exit(-1);
         } else {
             log::info!("overwrite the manifest");
-            std::fs::rename(path, "Cargo.toml.bak")?;
-            std::fs::write(path, formatted)?;
-
-            if !flag_keep {
-                std::fs::remove_file("Cargo.toml.bak")?;
+            if options.keep {
+                let mut bak_file = file_path.clone();
+                bak_file.set_file_name(file_name + ".bak");
+                std::fs::rename(file_path, bak_file)?;
             }
+            std::fs::write(file_path, formatted)?;
         }
     } else {
         log::debug!("no problem found. good job! :)");
-        std::process::exit(0);
     }
 
     Ok(())
