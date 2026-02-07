@@ -28,12 +28,16 @@ fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
 
         if doc[key].is_table() {
             let table = doc[key.as_str()].as_table_mut().unwrap();
-            fmt::fmt_table(table, config)?;
+            fmt::fmt_table(table, config, Some(key))?;
             if key == "features" {
                 fmt::reorder_features_table(table);
             }
         } else if doc[key].is_array_of_tables() {
-            fmt::fmt_array_of_tables(doc[key.as_str()].as_array_of_tables_mut().unwrap(), config)?;
+            fmt::fmt_array_of_tables(
+                doc[key.as_str()].as_array_of_tables_mut().unwrap(),
+                config,
+                Some(key),
+            )?;
         } else if doc[key].is_value() {
             fmt::fmt_value(doc[key.as_str()].as_value_mut().unwrap())?;
         }
