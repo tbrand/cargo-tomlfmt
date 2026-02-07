@@ -26,7 +26,7 @@ pub fn load_config(manifest_path: &Path) -> Result<FormatConfig> {
     }
 
     let raw = std::fs::read_to_string(&path)?;
-    let doc = raw.parse::<toml_edit::Document>()?;
+    let doc = raw.parse::<toml_edit::DocumentMut>()?;
     let mut config = FormatConfig::default();
 
     let table = if doc["tomlfmt"].is_table() {
