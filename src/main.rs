@@ -21,11 +21,6 @@ fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
         .collect::<Vec<String>>();
 
     for key in &keys {
-        if key == "package" {
-            // we don't format the 'package' table.
-            continue;
-        }
-
         if doc[key].is_table() {
             let table = doc[key.as_str()].as_table_mut().unwrap();
             fmt::fmt_table(table, config, Some(key))?;
@@ -224,6 +219,19 @@ mod test {
     }
 
     #[test]
+    fn format_package_table() {
+        let file = std::fs::read("test/fixtures/package_unsorted.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let config = config::FormatConfig::default();
+        let formatted = fmt_toml(&file_str, config).unwrap();
+
+        let name_pos = formatted.find("name = \"demo\"").unwrap();
+        let version_pos = formatted.find("version = \"0.1.0\"").unwrap();
+
+        assert!(name_pos < version_pos);
+    }
+
+    #[test]
     fn default_feature_first() {
         let file = std::fs::read("test/fixtures/features_unsorted.toml").unwrap();
         let file_str = std::str::from_utf8(file.as_slice()).unwrap();
@@ -249,5 +257,15 @@ mod test {
         let a_pos = formatted.find("a = \"2\"").unwrap();
 
         assert!(b_pos < a_pos);
+    }
+
+    #[test]
+    fn workspace_members_multiline() {
+        let file = std::fs::read("test/fixtures/workspace_members_inline.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let config = config::FormatConfig::default();
+        let formatted = fmt_toml(&file_str, config).unwrap();
+
+        assert!(formatted.contains("members = [\n"));
     }
 }
