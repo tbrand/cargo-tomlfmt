@@ -15,11 +15,6 @@ fn fmt_toml(orig: &str) -> Result<String> {
         .collect::<Vec<String>>();
 
     for key in &keys {
-        if key == "package" {
-            // we don't format the 'package' table.
-            continue;
-        }
-
         if doc[key].is_table() {
             fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap())?;
         } else if doc[key].is_array_of_tables() {
@@ -136,5 +131,17 @@ mod test {
 
         assert!(formatted.contains("# this is an inline comment"));
         assert!(formatted.contains("# this is a suffix comment"));
+    }
+
+    #[test]
+    fn format_package_table() {
+        let file = std::fs::read("test/fixtures/package_unsorted.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let formatted = fmt_toml(&file_str).unwrap();
+
+        let name_pos = formatted.find("name = \"demo\"").unwrap();
+        let version_pos = formatted.find("version = \"0.1.0\"").unwrap();
+
+        assert!(name_pos < version_pos);
     }
 }
