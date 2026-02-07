@@ -13,10 +13,8 @@ struct Flags {
 }
 
 fn fmt_toml(orig: &str) -> Result<String> {
-    let mut doc = orig.parse::<toml_edit::Document>()?;
-    let doc_keys = doc.clone();
-    let keys = doc_keys
-        .as_table()
+    let mut doc = orig.parse::<toml_edit::DocumentMut>()?;
+    let keys = doc
         .iter()
         .map(|(key, _)| key.to_owned())
         .collect::<Vec<String>>();
@@ -57,7 +55,7 @@ fn new_path(path: &std::path::Path) -> std::path::PathBuf {
 
 fn workspace_member_manifests(
     manifest_path: &std::path::Path,
-    doc: &toml_edit::Document,
+    doc: &toml_edit::DocumentMut,
 ) -> Vec<std::path::PathBuf> {
     let Some(workspace) = doc.get("workspace").and_then(|item| item.as_table()) else {
         return Vec::new();
@@ -172,7 +170,7 @@ fn main() -> Result<()> {
     let mut had_changes = format_manifest(std::path::Path::new(path), flags)?;
 
     let file = std::fs::read(path)?;
-    let doc = std::str::from_utf8(file.as_slice())?.parse::<toml_edit::Document>()?;
+    let doc = std::str::from_utf8(file.as_slice())?.parse::<toml_edit::DocumentMut>()?;
     for member_manifest in workspace_member_manifests(std::path::Path::new(path), &doc) {
         if format_manifest(&member_manifest, flags)? {
             had_changes = true;
