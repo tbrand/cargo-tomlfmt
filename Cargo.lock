@@ -62,16 +62,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.101"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
-
-[[package]]
 name = "cargo-tomlfmt"
 version = "0.1.4"
 dependencies = [
- "anyhow",
  "clap",
  "env_logger",
  "log",

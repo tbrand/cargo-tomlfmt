@@ -1,9 +1,10 @@
 use env_logger::Env;
 
 mod cli;
+mod config;
 mod fmt;
 
-type Result<T> = anyhow::Result<T>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Clone, Copy)]
 struct Flags {
@@ -12,7 +13,7 @@ struct Flags {
     create: bool,
 }
 
-fn fmt_toml(orig: &str) -> Result<String> {
+fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
     let mut doc = orig.parse::<toml_edit::DocumentMut>()?;
     let keys = doc
         .iter()
@@ -26,10 +27,11 @@ fn fmt_toml(orig: &str) -> Result<String> {
         }
 
         if doc[key].is_table() {
-            fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap(), Some(key))?;
+            fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap(), config, Some(key))?;
         } else if doc[key].is_array_of_tables() {
             fmt::fmt_array_of_tables(
                 doc[key.as_str()].as_array_of_tables_mut().unwrap(),
+                config,
                 Some(key),
             )?;
         } else if doc[key].is_value() {
@@ -86,7 +88,8 @@ fn workspace_member_manifests(
 fn format_manifest(path: &std::path::Path, flags: Flags) -> Result<bool> {
     let file = std::fs::read(path)?;
     let orig = std::str::from_utf8(file.as_slice())?;
-    let formatted = fmt_toml(orig)?;
+    let config = config::load_config(path)?;
+    let formatted = fmt_toml(orig, config)?;
 
     if orig != formatted {
         if flags.dryrun {
@@ -197,14 +200,16 @@ mod test {
         let file = std::fs::read("test/fixtures/value_after_table.toml").unwrap();
         let file_str = std::str::from_utf8(file.as_slice()).unwrap();
 
-        assert!(fmt_toml(&file_str).is_ok());
+        let config = config::FormatConfig::default();
+        assert!(fmt_toml(&file_str, config).is_ok());
     }
 
     #[test]
     fn preserve_comments() {
         let file = std::fs::read("test/fixtures/keep_comment.toml").unwrap();
         let file_str = std::str::from_utf8(file.as_slice()).unwrap();
-        let formatted = fmt_toml(&file_str);
+        let config = config::FormatConfig::default();
+        let formatted = fmt_toml(&file_str, config);
 
         assert!(formatted.is_ok());
 
@@ -215,10 +220,24 @@ mod test {
     }
 
     #[test]
+    fn preserve_table_order_when_disabled() {
+        let file = std::fs::read("test/fixtures/keep_order.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let config = config::FormatConfig { sort_keys: false };
+        let formatted = fmt_toml(&file_str, config).unwrap();
+
+        let b_pos = formatted.find("b = \"1\"").unwrap();
+        let a_pos = formatted.find("a = \"2\"").unwrap();
+
+        assert!(b_pos < a_pos);
+    }
+
+    #[test]
     fn workspace_members_multiline() {
         let file = std::fs::read("test/fixtures/workspace_members_inline.toml").unwrap();
         let file_str = std::str::from_utf8(file.as_slice()).unwrap();
-        let formatted = fmt_toml(&file_str).unwrap();
+        let config = config::FormatConfig::default();
+        let formatted = fmt_toml(&file_str, config).unwrap();
 
         assert!(formatted.contains("members = [\n"));
     }

@@ -1,6 +1,10 @@
-use crate::Result;
+use crate::{config::FormatConfig, Result};
 
-pub fn fmt_table(table: &mut toml_edit::Table, table_name: Option<&str>) -> Result<()> {
+pub fn fmt_table(
+    table: &mut toml_edit::Table,
+    config: FormatConfig,
+    table_name: Option<&str>,
+) -> Result<()> {
     let keys = table
         .clone()
         .iter()
@@ -9,10 +13,11 @@ pub fn fmt_table(table: &mut toml_edit::Table, table_name: Option<&str>) -> Resu
 
     for key in &keys {
         if table[key].is_table() {
-            fmt_table(table[key.as_str()].as_table_mut().unwrap(), Some(key))?;
+            fmt_table(table[key.as_str()].as_table_mut().unwrap(), config, Some(key))?;
         } else if table[key].is_array_of_tables() {
             fmt_array_of_tables(
                 table[key.as_str()].as_array_of_tables_mut().unwrap(),
+                config,
                 Some(key),
             )?;
         } else if table[key].is_value() {
@@ -35,18 +40,21 @@ pub fn fmt_table(table: &mut toml_edit::Table, table_name: Option<&str>) -> Resu
         }
     }
 
-    table.sort_values();
+    if config.sort_keys {
+        table.sort_values();
+    }
 
     Ok(())
 }
 
 pub fn fmt_array_of_tables(
     array_of_tables: &mut toml_edit::ArrayOfTables,
+    config: FormatConfig,
     table_name: Option<&str>,
 ) -> Result<()> {
     for idx in 0..array_of_tables.len() {
         let table = array_of_tables.get_mut(idx).unwrap();
-        fmt_table(table, table_name)?;
+        fmt_table(table, config, table_name)?;
     }
 
     Ok(())
