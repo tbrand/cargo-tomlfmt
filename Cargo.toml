@@ -13,8 +13,8 @@ name = 'cargo-tomlfmt'
 path = 'src/main.rs'
 
 [dependencies]
-anyhow = "1.0.68"
-clap = { version = '4.1.4', features = ['cargo'] }
-env_logger = '0.10.0'
-log = "0.4.17"
-toml_edit = "0.18.0"
+anyhow = "1.0.101"
+clap = { version = "4.5.57", features = ["cargo"] }
+env_logger = "0.11.8"
+log = "0.4.29"
+toml_edit = "0.24.0+spec-1.1.0"
