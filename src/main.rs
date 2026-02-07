@@ -193,6 +193,19 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn temp_dir(prefix: &str) -> PathBuf {
+        let mut dir = std::env::temp_dir();
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        dir.push(format!("cargo-tomlfmt-{prefix}-{nanos}-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
 
     #[test]
     fn parse_inline_table() {
@@ -267,5 +280,43 @@ mod test {
         let formatted = fmt_toml(&file_str, config).unwrap();
 
         assert!(formatted.contains("members = [\n"));
+        assert!(formatted.contains("\n    \"crate1\""));
+        assert!(formatted.contains("\n    \"crate2\""));
+        assert!(formatted.contains("\n]"));
+    }
+
+    #[test]
+    fn non_workspace_array_stays_inline() {
+        let file = std::fs::read("test/fixtures/non_workspace_array.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let config = config::FormatConfig::default();
+        let formatted = fmt_toml(&file_str, config).unwrap();
+
+        assert!(formatted.contains("features = [\"a\", \"b\"]"));
+        assert!(!formatted.contains("features = [\n"));
+    }
+
+    #[test]
+    fn workspace_member_manifest_filters_missing() {
+        let dir = temp_dir("members");
+        let manifest = dir.join("Cargo.toml");
+        fs::write(
+            &manifest,
+            "[workspace]\nmembers = [\"crate-a\", \"crate-missing\"]\n",
+        )
+        .unwrap();
+        let crate_a_dir = dir.join("crate-a");
+        fs::create_dir_all(&crate_a_dir).unwrap();
+        fs::write(crate_a_dir.join("Cargo.toml"), "[package]\nname = \"a\"\n").unwrap();
+
+        let doc = std::fs::read_to_string(&manifest)
+            .unwrap()
+            .parse::<toml_edit::DocumentMut>()
+            .unwrap();
+        let members = workspace_member_manifests(&manifest, &doc);
+        assert_eq!(members.len(), 1);
+        assert_eq!(members[0], crate_a_dir.join("Cargo.toml"));
+
+        fs::remove_dir_all(&dir).unwrap();
     }
 }
