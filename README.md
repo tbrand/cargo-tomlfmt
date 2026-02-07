@@ -27,3 +27,18 @@ FLAGS:
 -p, --path       Path of the manifest. (default is Cargo.toml)
 -V, --version    Prints version information
 ```
+
+## Configuration
+If a `tomlfmt.toml` file exists next to the manifest, it will be loaded to
+control formatting behavior.
+
+Example:
+```toml
+sort_keys = false
+```
+
+You can also nest options under a `[tomlfmt]` table:
+```toml
+[tomlfmt]
+sort_keys = false
+```
