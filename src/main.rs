@@ -3,7 +3,7 @@ use env_logger::Env;
 mod cli;
 mod fmt;
 
-type Result<T> = anyhow::Result<T>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 fn fmt_toml(orig: &str) -> Result<String> {
     let mut doc = orig.parse::<toml_edit::Document>()?;
