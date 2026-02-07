@@ -15,6 +15,12 @@ cargo install cargo-tomlfmt
 cargo tomlfmt
 ```
 
+## Behavior
+- Formats all top-level tables, including `[package]`.
+- In `[features]`, keeps `default` first and sorts the rest alphabetically.
+- In `[workspace]`, formats `members` as a multi-line array for readability.
+- When run on a workspace root manifest, also formats each member's `Cargo.toml`.
+
 ## Options
 ```bash
 > cargo tomlfmt
@@ -27,6 +33,9 @@ FLAGS:
 -p, --path       Path of the manifest. (default is Cargo.toml)
 -V, --version    Prints version information
 ```
+
+When formatting a workspace root, the same `.bak` / `.new` behavior applies
+to each member manifest.
 
 ## Configuration
 If a `tomlfmt.toml` file exists next to the manifest, it will be loaded to

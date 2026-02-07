@@ -29,11 +29,10 @@ pub fn load_config(manifest_path: &Path) -> Result<FormatConfig> {
     let doc = raw.parse::<toml_edit::DocumentMut>()?;
     let mut config = FormatConfig::default();
 
-    let table = if doc["tomlfmt"].is_table() {
-        doc["tomlfmt"].as_table().unwrap()
-    } else {
-        doc.as_table()
-    };
+    let table = doc
+        .get("tomlfmt")
+        .and_then(|item| item.as_table())
+        .unwrap_or_else(|| doc.as_table());
 
     if let Some(value) = table
         .get("sort_keys")
@@ -44,4 +43,63 @@ pub fn load_config(manifest_path: &Path) -> Result<FormatConfig> {
     }
 
     Ok(config)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::fs;
+
+    fn temp_dir(prefix: &str) -> PathBuf {
+        let mut dir = std::env::temp_dir();
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        dir.push(format!("cargo-tomlfmt-{prefix}-{nanos}-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn load_config_defaults_when_missing() {
+        let dir = temp_dir("missing");
+        let manifest = dir.join("Cargo.toml");
+        fs::write(&manifest, "[package]\nname = \"demo\"\n").unwrap();
+
+        let config = load_config(&manifest).unwrap();
+        assert!(config.sort_keys);
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn load_config_from_root_table() {
+        let dir = temp_dir("root");
+        let manifest = dir.join("Cargo.toml");
+        fs::write(&manifest, "[package]\nname = \"demo\"\n").unwrap();
+        fs::write(dir.join("tomlfmt.toml"), "sort_keys = false\n").unwrap();
+
+        let config = load_config(&manifest).unwrap();
+        assert!(!config.sort_keys);
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn load_config_from_tomlfmt_table() {
+        let dir = temp_dir("table");
+        let manifest = dir.join("Cargo.toml");
+        fs::write(&manifest, "[package]\nname = \"demo\"\n").unwrap();
+        fs::write(
+            dir.join("tomlfmt.toml"),
+            "[tomlfmt]\nsort_keys = false\n",
+        )
+        .unwrap();
+
+        let config = load_config(&manifest).unwrap();
+        assert!(!config.sort_keys);
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
 }

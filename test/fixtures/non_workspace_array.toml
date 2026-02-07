@@ -1,0 +1,2 @@
+[dependencies]
+features = ["a", "b"]
