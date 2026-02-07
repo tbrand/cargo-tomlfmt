@@ -60,7 +60,7 @@ pub fn reorder_features_table(table: &mut toml_edit::Table) {
 
     for key in keys {
         if let Some(item) = table.remove(&key) {
-            reordered.insert(key, item);
+            reordered.insert(&key, item);
         }
     }
 
