@@ -21,7 +21,14 @@ pub fn fmt_table(table: &mut toml_edit::Table, table_name: Option<&str>) -> Resu
                     .as_value_mut()
                     .and_then(|value| value.as_array_mut())
                 {
-                    array.set_multiline(true);
+                    for value in array.iter_mut() {
+                        let decor = value.decor_mut();
+                        decor.set_prefix("\n    ");
+                        decor.set_suffix("");
+                    }
+                    array.set_trailing_comma(true);
+                    array.set_trailing("\n");
+                    continue;
                 }
             }
             fmt_value(table[key.as_str()].as_value_mut().unwrap())?;
