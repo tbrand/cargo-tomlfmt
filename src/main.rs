@@ -6,11 +6,16 @@ mod fmt;
 
 type Result<T> = anyhow::Result<T>;
 
+#[derive(Clone, Copy)]
+struct Flags {
+    dryrun: bool,
+    keep: bool,
+    create: bool,
+}
+
 fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
-    let mut doc = orig.parse::<toml_edit::Document>()?;
-    let doc_keys = doc.clone();
-    let keys = doc_keys
-        .as_table()
+    let mut doc = orig.parse::<toml_edit::DocumentMut>()?;
+    let keys = doc
         .iter()
         .map(|(key, _)| key.to_owned())
         .collect::<Vec<String>>();
@@ -34,6 +39,83 @@ fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
     }
 
     Ok(doc.to_string())
+}
+
+fn backup_path(path: &std::path::Path) -> std::path::PathBuf {
+    let file_name = path
+        .file_name()
+        .map(|name| name.to_string_lossy())
+        .unwrap_or_else(|| "Cargo.toml".into());
+    path.with_file_name(format!("{file_name}.bak"))
+}
+
+fn new_path(path: &std::path::Path) -> std::path::PathBuf {
+    let file_name = path
+        .file_name()
+        .map(|name| name.to_string_lossy())
+        .unwrap_or_else(|| "Cargo.toml".into());
+    path.with_file_name(format!("{file_name}.new"))
+}
+
+fn workspace_member_manifests(
+    manifest_path: &std::path::Path,
+    doc: &toml_edit::DocumentMut,
+) -> Vec<std::path::PathBuf> {
+    let Some(workspace) = doc.get("workspace").and_then(|item| item.as_table()) else {
+        return Vec::new();
+    };
+    let Some(members) = workspace
+        .get("members")
+        .and_then(|item| item.as_value())
+        .and_then(|value| value.as_array())
+    else {
+        return Vec::new();
+    };
+
+    let manifest_dir = manifest_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+
+    members
+        .iter()
+        .filter_map(|value| value.as_str())
+        .map(|member| manifest_dir.join(member).join("Cargo.toml"))
+        .filter(|path| path.exists())
+        .collect()
+}
+
+fn format_manifest(path: &std::path::Path, flags: Flags) -> Result<bool> {
+    let file = std::fs::read(path)?;
+    let orig = std::str::from_utf8(file.as_slice())?;
+    let config = config::load_config(path)?;
+    let formatted = fmt_toml(orig, config)?;
+
+    if orig != formatted {
+        if flags.dryrun {
+            log::warn!("dryrun found problems in {}", path.display());
+
+            if flags.create {
+                let new_path = new_path(path);
+                log::info!("create {}", new_path.display());
+                std::fs::write(new_path, formatted)?;
+            }
+
+            return Ok(true);
+        } else {
+            log::info!("overwrite the manifest {}", path.display());
+            let backup = backup_path(path);
+            std::fs::rename(path, &backup)?;
+            std::fs::write(path, formatted)?;
+
+            if !flags.keep {
+                std::fs::remove_file(backup)?;
+            }
+        }
+    } else {
+        log::debug!("no problem found for {}", path.display());
+    }
+
+    Ok(false)
 }
 
 fn main() -> Result<()> {
@@ -68,50 +150,41 @@ fn main() -> Result<()> {
             .map(|m| m.contains_id("create"))
             .unwrap_or(false);
 
-    if flag_dryrun {
+    let flags = Flags {
+        dryrun: flag_dryrun,
+        keep: flag_keep,
+        create: flag_create,
+    };
+
+    if flags.dryrun {
         log::debug!("flag: dryrun");
     }
 
-    if flag_keep {
+    if flags.keep {
         log::debug!("flag: keep");
     }
 
-    if flag_create {
+    if flags.create {
         log::debug!("flag: create");
 
-        if !flag_dryrun {
+        if !flags.dryrun {
             log::warn!("flag: create can be used with dryrun");
         }
     }
 
+    let mut had_changes = format_manifest(std::path::Path::new(path), flags)?;
+
     let file = std::fs::read(path)?;
-    let orig = std::str::from_utf8(file.as_slice())?;
-    let config = config::load_config(std::path::Path::new(path))?;
-    let formatted = fmt_toml(orig, config)?;
-
-    if orig != formatted {
-        if flag_dryrun {
-            log::warn!("dryrun found problems in Cargo.toml");
-
-            if flag_create {
-                log::info!("create Cargo.toml.new");
-                std::fs::write("Cargo.toml.new", formatted)?;
-            }
-
-            log::warn!("exit with -1");
-            std::process::exit(-1);
-        } else {
-            log::info!("overwrite the manifest");
-            std::fs::rename(path, "Cargo.toml.bak")?;
-            std::fs::write(path, formatted)?;
-
-            if !flag_keep {
-                std::fs::remove_file("Cargo.toml.bak")?;
-            }
+    let doc = std::str::from_utf8(file.as_slice())?.parse::<toml_edit::DocumentMut>()?;
+    for member_manifest in workspace_member_manifests(std::path::Path::new(path), &doc) {
+        if format_manifest(&member_manifest, flags)? {
+            had_changes = true;
         }
-    } else {
-        log::debug!("no problem found. good job! :)");
-        std::process::exit(0);
+    }
+
+    if flags.dryrun && had_changes {
+        log::warn!("exit with -1");
+        std::process::exit(-1);
     }
 
     Ok(())
