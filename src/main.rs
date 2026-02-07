@@ -21,7 +21,11 @@ fn fmt_toml(orig: &str) -> Result<String> {
         }
 
         if doc[key].is_table() {
-            fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap())?;
+            let table = doc[key.as_str()].as_table_mut().unwrap();
+            fmt::fmt_table(table)?;
+            if key == "features" {
+                fmt::reorder_features_table(table);
+            }
         } else if doc[key].is_array_of_tables() {
             fmt::fmt_array_of_tables(doc[key.as_str()].as_array_of_tables_mut().unwrap())?;
         } else if doc[key].is_value() {
@@ -136,5 +140,19 @@ mod test {
 
         assert!(formatted.contains("# this is an inline comment"));
         assert!(formatted.contains("# this is a suffix comment"));
+    }
+
+    #[test]
+    fn default_feature_first() {
+        let file = std::fs::read("test/fixtures/features_unsorted.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let formatted = fmt_toml(&file_str).unwrap();
+
+        let default_pos = formatted.find("default = [\"serde\"]").unwrap();
+        let serde_pos = formatted.find("serde = []").unwrap();
+        let unstable_pos = formatted.find("unstable = []").unwrap();
+
+        assert!(default_pos < serde_pos);
+        assert!(default_pos < unstable_pos);
     }
 }

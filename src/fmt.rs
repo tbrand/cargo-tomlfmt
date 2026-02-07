@@ -40,3 +40,29 @@ pub fn fmt_value(value: &mut toml_edit::Value) -> Result<()> {
 
     Ok(())
 }
+
+pub fn reorder_features_table(table: &mut toml_edit::Table) {
+    if !table.contains_key("default") {
+        return;
+    }
+
+    let default_item = table.remove("default");
+    let mut keys = table
+        .iter()
+        .map(|(key, _)| key.to_owned())
+        .collect::<Vec<String>>();
+    keys.sort();
+
+    let mut reordered = toml_edit::Table::new();
+    if let Some(item) = default_item {
+        reordered.insert("default", item);
+    }
+
+    for key in keys {
+        if let Some(item) = table.remove(&key) {
+            reordered.insert(key, item);
+        }
+    }
+
+    *table = reordered;
+}
