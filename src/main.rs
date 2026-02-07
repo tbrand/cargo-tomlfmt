@@ -27,11 +27,12 @@ fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
         }
 
         if doc[key].is_table() {
-            fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap(), config)?;
+            fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap(), config, Some(key))?;
         } else if doc[key].is_array_of_tables() {
             fmt::fmt_array_of_tables(
                 doc[key.as_str()].as_array_of_tables_mut().unwrap(),
                 config,
+                Some(key),
             )?;
         } else if doc[key].is_value() {
             fmt::fmt_value(doc[key.as_str()].as_value_mut().unwrap())?;
@@ -229,5 +230,15 @@ mod test {
         let a_pos = formatted.find("a = \"2\"").unwrap();
 
         assert!(b_pos < a_pos);
+    }
+
+    #[test]
+    fn workspace_members_multiline() {
+        let file = std::fs::read("test/fixtures/workspace_members_inline.toml").unwrap();
+        let file_str = std::str::from_utf8(file.as_slice()).unwrap();
+        let config = config::FormatConfig::default();
+        let formatted = fmt_toml(&file_str, config).unwrap();
+
+        assert!(formatted.contains("members = [\n"));
     }
 }
