@@ -21,11 +21,6 @@ fn fmt_toml(orig: &str, config: config::FormatConfig) -> Result<String> {
         .collect::<Vec<String>>();
 
     for key in &keys {
-        if key == "package" {
-            // we don't format the 'package' table.
-            continue;
-        }
-
         if doc[key].is_table() {
             fmt::fmt_table(doc[key.as_str()].as_table_mut().unwrap(), config)?;
         } else if doc[key].is_array_of_tables() {
